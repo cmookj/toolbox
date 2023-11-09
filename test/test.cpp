@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include "str.hpp"
 
+using namespace gpw::str; 
+
 TEST(StringTest, TrimReduce) {
   const std::string foo = "    too much\t   \tspace\t\t\t  ";
   const std::string bar = "one\ntwo";

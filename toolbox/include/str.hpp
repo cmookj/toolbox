@@ -1,6 +1,7 @@
 #include <string_view>
 #include <string>
 
+namespace gpw::str {
 std::string_view ltrim(std::string_view str);
 std::string_view rtrim(std::string_view str);
 std::string_view trim(std::string_view str);
@@ -11,3 +12,4 @@ std::string trim(const std::string& str,
 std::string reduce(const std::string& str,
                    const std::string& fill = " ",
                    const std::string& whitespace = " \t");
+}
