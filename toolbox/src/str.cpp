@@ -35,14 +35,3 @@ std::string reduce(const std::string& str,
 
     return result;
 }
-
-// int main() {
-    // const std::string foo = "    too much\t   \tspace\t\t\t  ";
-    // const std::string bar = "one\ntwo";
-// 
-    // std::cout << "[" << trim(foo) << "]" << std::endl;
-    // std::cout << "[" << reduce(foo) << "]" << std::endl;
-    // std::cout << "[" << reduce(foo, "-") << "]" << std::endl;
-// 
-    // std::cout << "[" << trim(bar) << "]" << std::endl;
-// }
