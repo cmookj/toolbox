@@ -10,3 +10,10 @@ TEST(StringTest, TrimReduce) {
   EXPECT_EQ(reduce(foo, "-"), "too-much-space");
   EXPECT_EQ(trim(bar), "one\ntwo");
 }
+
+TEST(StringViewTest, Trim) {
+  std::string str = "   hello world   ";
+  EXPECT_EQ(ltrim(str), "hello world   ");
+  EXPECT_EQ(rtrim(str), "   hello world");
+  EXPECT_EQ(trim(str), "hello world");
+}
