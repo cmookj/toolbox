@@ -1,5 +1,6 @@
 #include <str.hpp>
 
+namespace gpw::str {
 std::string_view ltrim(std::string_view str) {
     const auto pos(str.find_first_not_of(" \t\n\r\f\v"));
     str.remove_prefix(std::min(pos, str.length()));
@@ -52,4 +53,5 @@ std::string reduce(const std::string& str,
     }
 
     return result;
+}
 }
