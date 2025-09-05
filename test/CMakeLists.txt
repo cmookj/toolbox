@@ -3,7 +3,7 @@
 if (BUILD_TESTING)
     add_executable (tbx_test test.cpp)
     target_link_libraries (tbx_test PRIVATE 
-        lib_toolbox
+        toolbox
         GTest::gtest_main)
     
     target_include_directories (tbx_test PRIVATE 
