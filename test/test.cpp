@@ -21,3 +21,53 @@ TEST (StringViewTest, Trim) {
     EXPECT_EQ (rtrim (str), "   hello world");
     EXPECT_EQ (trim (str), "hello world");
 }
+
+TEST (String, KMP) {
+    {
+        std::string S = "ABC ABCDAB ABCDABCDABDE";
+        std::string W = "ABCDABD";
+
+        // std::vector<int> indices = positions_in_string (S, W);
+        std::vector<int> indices = search (W, S);
+
+        EXPECT_EQ (indices.size(), 1);
+        EXPECT_EQ (indices[0], 15);
+    }
+
+    {
+        std::string S = "aabaacaadaabaaba";
+        std::string W = "aaba";
+
+        // std::vector<int> indices = positions_in_string (S, W);
+        std::vector<int> indices = search (W, S);
+
+        EXPECT_EQ (indices.size(), 3);
+        EXPECT_EQ (indices[0], 0);
+        EXPECT_EQ (indices[1], 9);
+        EXPECT_EQ (indices[2], 12);
+    }
+
+    {
+        std::string S = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        std::string W = "aaaa";
+
+        // std::vector<int> indices = positions_in_string (S, W);
+        std::vector<int> indices = search (W, S);
+
+        EXPECT_EQ (indices.size(), 40);
+        for (int i = 0; i < 40; ++i) {
+            EXPECT_EQ (indices[i], i);
+        }
+    }
+
+    {
+        std::string S = "aabaaabaaaabaaaaabaaaaaabaaac";
+        std::string W = "aabaaac";
+
+        // std::vector<int> indices = positions_in_string (S, W);
+        std::vector<int> indices = search (W, S);
+
+        EXPECT_EQ (indices.size(), 1);
+        EXPECT_EQ (indices[0], 22);
+    }
+}
