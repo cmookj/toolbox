@@ -1,5 +1,5 @@
-#include "filesystem.hpp"
-#include "str.hpp"
+#include "core/filesystem.h"
+#include "core/str.h"
 
 #include <gtest/gtest.h>
 

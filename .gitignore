@@ -1,5 +1,7 @@
-build
-.cache
 .DS_Store
+MODULE.bazel.lock
+bazel-bin
+bazel-out
+bazel-testlogs
+bazel-*
 compile_commands.json
-a.out
