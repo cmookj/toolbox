@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+
+# Searches contents of text files using other tools
+#
+# Dependency:
+#   rg (ripgrep), fzf, bat
+
+usage() {
+    echo "Usage: fzsearch [--title|--tag] <pattern> [<dir>]"
+    exit 1
+}
+
+search_title() {
+    local pattern="$1" dir="$2"
+    rg --line-number "^title:.*${pattern}" "$dir"
+}
+
+search_tags() {
+    local pattern="$1" dir="$2"
+    rg -l "" "$dir" | while IFS= read -r file; do
+        awk -v pat="$pattern" -v fname="$file" '
+            /^tags:/                          { in_tags=1; next }
+            in_tags && /^[[:space:]]+-[[:space:]]/ {
+                if ($0 ~ pat) printf "%s:%d:%s\n", fname, NR, $0
+            }
+            in_tags && /^[^[:space:]]/ { exit }
+        ' "$file" 2>/dev/null
+    done
+}
+
+search_all() {
+    local pattern="$1" dir="$2"
+    rg --line-number "$pattern" "$dir"
+}
+
+# --- Parse arguments ---
+mode="all"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --title) mode="title"; shift ;;
+        --tag)   mode="tag";  shift ;;
+        --*)     usage ;;
+        *)       break ;;
+    esac
+done
+
+[[ $# -lt 1 ]] && usage
+pattern="$1"
+dir="${2:-.}"
+
+# --- Run search ---
+case "$mode" in
+    title) results=$(search_title "$pattern" "$dir") ;;
+    tag)   results=$(search_tags  "$pattern" "$dir") ;;
+    all)   results=$(search_all   "$pattern" "$dir") ;;
+esac
+
+[[ -z "$results" ]] && exit 0
+
+selected=$(echo "$results" \
+    | sort -t: -u -k1,1 \
+    | fzf --delimiter ':' --with-nth 1.. \
+          --preview 'bat --style=numbers --color=always {1}')
+
+[[ -z "$selected" ]] && exit 0
+
+file=$(echo "$selected" | cut -d: -f1)
+line=$(echo "$selected" | cut -d: -f2)
+
+"${EDITOR:-vi}" +"$line" "$file"
+

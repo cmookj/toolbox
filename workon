@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+PROJECTS_HOME="$HOME/Documents/1-projects"
+VENV_HOME="$HOME/.venv"
+
+# Usage: workon <env_name> or workon    
+if [ $# -eq 0 ]; then
+    ls -1 $VENV_HOME
+    return 0
+fi
+
+VENV=$VENV_HOME/$1/bin/activate.fish
+if [ -f $VENV ]; then
+    if [ -d "$VIRTUAL_ENV" ]; then
+        deactivate
+    fi
+    source $VENV
+    cd $PROJECTS_HOME/$1
+else
+    echo "ERROR: Environment '$1' does not exist.  Create it with 'mkproject $1'."
+fi

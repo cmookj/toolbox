@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# This script launches Pluto.jl (Julia notebook)
+echo -e "import Pkg; Pkg.add(\"Pluto\")\nimport Pluto; Pluto.run()" > /tmp/jnb.jl 
+julia /tmp/jnb.jl

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+PROJECTS_HOME="$HOME/Documents/1-projects"
+VENV_HOME="$HOME/.venv"
+
+# Usage: rmvirtualenv <env_name>
+if [ -d "$VIRTUAL_ENV" ]; then
+    echo "Please deactivate current venv before removing a venv."
+    return 1
+fi
+if [ $# -eq 0 ]; then
+    echo "Please specify an environment"
+    return 1
+fi
+echo "Removing $1..."
+rm -r $VENV_HOME/$1

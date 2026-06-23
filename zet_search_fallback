@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+
+# Searches notes with a tag or an id
+
+SUB="${BASH_SOURCE%/*}/sub"
+if [[ ! -d "$SUB" ]]; then SUB="$PWD/sub"; fi
+source "$SUB/string_utils.sh"
+source "$SUB/term_control.sh"
+
+VAULT="$SECOND_BRAIN"/vault/
+
+function print_list_summary {
+    # Print summary
+    case $1 in
+    0)
+        local summary="$style_red_bold!!$style_normal No file was found"
+        printf $summary
+        ;;
+    1)
+        local summary="=> $style_green_bold1$style_normal file found"
+        printf $summary
+        ;;
+    *)
+        local summary="=> $style_green_bold$1$style_normal files found"
+        printf $summary
+        ;;
+    esac
+}
+
+function search_notes {
+    local method="$1"
+    local key="$2"
+
+    if [[ $key != "" ]]; then
+        local files_found=""
+        case $method in
+        "tag")
+            echo "Search notes with a tag: $key"
+            files_found=$(grep -RIl "^.*tags:.*$key" "$SECOND_BRAIN")
+            ;;
+
+        "id")
+            echo "Search a note with a unique id: $key"
+            files_found=$(grep -RIl "^.*id:.*$key" "$SECOND_BRAIN")
+            ;;
+        esac
+
+        # Print file list
+        local file_counter=0
+        local file_list=()
+        while read line; do
+            file_counter=$((file_counter + 1))
+            local file_name=$(basename ${line#$VAULT})
+            local file_name_formatted="[$file_counter] $style_bold$file_name$style_normal"
+
+            local path_to_file=${line#$VAULT}
+            path_to_file=${path_to_file%$file_name}
+            local file_path_desc="        - in $style_blue$path_to_file$style_normal"
+
+            printf "$file_name_formatted\n"
+            printf "$file_path_desc\n"
+
+            file_list+=("$line")
+        done <<<"$files_found"
+
+        # Choose a file from the list
+        local done=0
+
+        while [[ $done -eq 0 ]]; do
+            local range_str="1-$file_counter"
+
+            # If only one item is available, change the range string to '1'
+            if [[ $file_counter -eq 1 ]]; then
+                range_str=1
+            fi
+
+            printf "$style_green_bold Choose a file$style_normal [$range_str or q to quit]: "
+            read option
+
+            if [[ "$option" == "q" ]]; then
+                return
+            fi
+
+            if [[ "$option" =~ ^[0-9]+$ ]]; then
+                if [[ $((option)) -gt 0 ]] && [[ $((option)) -le $((file_counter)) ]]; then
+                    nvim '+ normal ggzzi' "${file_list[$((option - 1))]}"
+                    done=1
+                    continue
+                fi
+            fi
+
+            echo 'Choose a value in the range or enter q to quit'
+        done
+
+    else
+        print_usage
+    fi
+}
+
+function print_usage {
+    echo "[USAGE]"
+    echo "    To search a note with a tag"
+    echo "        zet_search -t 'tag'"
+    echo "    To search a note with an id"
+    echo "        zet_search -i 'id'"
+}
+
+################################################################################
+#  BEGINS HERE
+################################################################################
+while [[ "$1" =~ ^- && ! "$1" == "--" ]]; do
+    case $1 in
+    -t | --tag)
+        search_notes "tag" "$2"
+        exit 0
+        ;;
+    -i | --id)
+        search_notes "id" "$2"
+        exit 0
+        ;;
+    esac
+    shift
+done
+
+print_usage

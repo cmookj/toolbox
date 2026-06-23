@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+SUB="${BASH_SOURCE%/*}/sub"
+if [[ ! -d "$SUB" ]]; then SUB="$PWD/sub"; fi
+source "$SUB/common.sh"
+source "$SUB/new_metapost.sh"
+source "$SUB/new_python.sh"
+
+function time_tag {
+    local date_time=$(date +%Y-%m-%d_%H-%M-%S)
+    echo $date_time
+}
+
+function print_usage {
+    echo "USAGE: newfile [--mp | --python] [file_name]"
+}
+
+if [ "$#" -eq 0 ]; then
+    print_usage
+    exit 1
+fi
+
+NEW_FILE_NAME=""
+if [ "$#" -eq 2 ]; then
+    NEW_FILE_NAME="$2"
+else
+    date_time=$(time_tag)
+    NEW_FILE_NAME="untitled_${date_time}"
+    echo "No filename: $NEW_FILE_NAME will be used"
+fi
+
+if [ "$1" = "--mp" ]; then
+    new_metapost_file $NEW_FILE_NAME
+elif [ "$1" = "--python" ]; then
+    new_python_file $NEW_FILE_NAME
+fi

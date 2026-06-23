@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+SUB="${BASH_SOURCE%/*}/sub"
+if [[ ! -d "$SUB" ]]; then SUB="$PWD/sub"; fi
+source "$SUB/common.sh"
+
+if is_macos; then
+    sleep $1 && say $2
+else
+    echo "[ERROR] This script runs only on macOS"
+fi

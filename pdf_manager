@@ -1,0 +1,234 @@
+#!/usr/bin/env python3
+
+import os
+import shutil
+import sqlite3
+import sys
+from dataclasses import dataclass
+
+
+# Utility routines
+def closed_ended_question(msg: str):
+    done = False
+    while not done:
+        answer = input(msg)
+        if answer.lower() == "y" or answer.lower() == "yes":
+            return True
+        elif answer.lower() == "n" or answer.lower() == "no":
+            return False
+        print("Answer with y(es) or n(o)")
+
+
+def string_input(msg: str, default_str: str):
+    input_str = input(msg + f" [{default_str}]: ")
+    if len(input_str) == 0:
+        return default_str
+    return input_str
+
+
+@dataclass
+class Metadata:
+    filename: str
+    title: str
+    authors: str
+    jnlcnf: str
+    volume: str
+    issue: str
+    year: str
+    publisher: str
+    category: str
+    tags: str
+    description: str
+
+
+class PdfManager:
+    def __init__(self):
+        # Initialize the database
+        # home_directory = os.path.expanduser("~")
+        resources_directory = os.environ.get("PARA_RESOURCES")
+        self.root_dir = f"{resources_directory}/pdf_db"
+
+        # Open (or create) a database file
+        self.conn = sqlite3.connect(f"{self.root_dir}/pdf_database.db")
+
+        # Create a cursor object to execute SQL commands
+        self.cursor = self.conn.cursor()
+
+        # SQL: create a table
+        self.cursor.execute("""
+        CREATE TABLE IF NOT EXISTS pdfs (
+            id INTEGER PRIMARY KEY,
+            filename TEXT,
+            title TEXT,
+            authors TEXT,
+            jnlcnf TEXT,
+            volume TEXT,
+            issue TEXT,
+            year TEXT,
+            publisher TEXT,
+            category TEXT,
+            tags TEXT,
+            description TEXT
+        )
+        """)
+
+        # Commit changes
+        self.conn.commit()
+
+    def __del__(self):
+        # Close connection
+        self.conn.close()
+
+    # Add a PDF
+    def add_pdf(self, filename):
+        md = self.get_metadata(filename)
+        categories = self.get_all_categories()
+        if md.category not in categories:
+            os.mkdir(self.root_dir + f"/{md.category}")
+        dst = self.root_dir + f"/{md.category}/" + md.filename
+        shutil.move(filename, dst)
+        self.register_pdf(md)
+
+    def register_pdf(self, md):
+        self.cursor.execute(
+            "INSERT INTO pdfs ("
+            "filename, title, authors, jnlcnf, volume, issue, year, "
+            "publisher, category, tags, description"
+            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                md.filename,
+                md.title,
+                md.authors,
+                md.jnlcnf,
+                md.volume,
+                md.issue,
+                md.year,
+                md.publisher,
+                md.category,
+                md.tags,
+                md.description,
+            ),
+        )
+        self.conn.commit()
+
+    # Query PDFs
+    def query_pdfs(self, keyword):
+        self.cursor.execute(
+            "SELECT * FROM pdfs WHERE "
+            "title LIKE ? OR "
+            "authors LIKE ? OR "
+            "tags LIKE ? OR "
+            "description LIKE ?",
+            (f"%{keyword}%", f"%{keyword}%", f"%{keyword}%", f"%{keyword}%"),
+        )
+        return self.cursor.fetchall()
+
+    # Get the list of all directoriees
+    def get_all_categories(self):
+        directories = [
+            entry.name for entry in os.scandir(self.root_dir) if entry.is_dir()
+        ]
+        return directories
+
+    # Get metadata interactively
+    def get_metadata(self, filename):
+        done = False
+
+        input_title = ""
+        input_authors = ""
+        input_jnlcnf = ""
+        input_volume = ""
+        input_issue = ""
+        input_year = ""
+        input_publisher = ""
+        input_category = ""
+        input_tags = ""
+        input_description = ""
+
+        while not done:
+            categories = self.get_all_categories()
+
+            input_title = string_input("Title", input_title)
+            input_authors = string_input("Authors", input_authors)
+            input_jnlcnf = string_input("Journal or Conference", input_jnlcnf)
+            input_volume = string_input("Volume", input_volume)
+            input_issue = string_input("Issue", input_issue)
+            input_year = string_input("Year", input_year)
+            input_publisher = string_input("Publisher", input_publisher)
+            input_category = string_input(f"Category - {categories}", input_category)
+            input_tags = string_input("Tags", input_tags)
+            input_description = string_input("Description", input_description)
+
+            print("")
+            print(">>> Please verify your input")
+            print(f"             Filename: {filename}")
+            print(f"                Title: {input_title}")
+            print(f"              Authors: {input_authors}")
+            print(f"Journal or Conference: {input_jnlcnf}")
+            print(f"               Volume: {input_volume}")
+            print(f"                Issue: {input_issue}")
+            print(f"                 Year: {input_year}")
+            print(f"            Publisher: {input_publisher}")
+            print(f"             Category: {input_category}")
+            print(f"                 Tags: {input_tags}")
+            print(f"          Description: {input_description}")
+
+            if closed_ended_question("All metadata correct? [y/n] "):
+                done = True
+
+        return Metadata(
+            filename,
+            input_title,
+            input_authors,
+            input_jnlcnf,
+            input_volume,
+            input_issue,
+            input_year,
+            input_publisher,
+            input_category,
+            input_tags,
+            input_description,
+        )
+
+
+def add_pdf(filename):
+    manager = PdfManager()
+    manager.add_pdf(filename)
+
+
+def search_pdf(keyword):
+    manager = PdfManager()
+    search_results = manager.query_pdfs(keyword)
+    file_counter = 1
+    for result in search_results:
+        print(f"[{file_counter}] {manager.root_dir}/{result[9]}/{result[1]}")
+        file_counter += 1
+
+
+def print_usage():
+    print("[USAGE] pdf_manager.py [ add | search | -a | -s ] file_name | keyword")
+
+
+def main():
+    if len(sys.argv) == 1:
+        print_usage()
+        return
+
+    if sys.argv[1] == "add" or sys.argv[1] == "-a":
+        file_path = sys.argv[2]
+        if os.path.exists(file_path):
+            add_pdf(sys.argv[2])
+    elif sys.argv[1] == "search" or sys.argv[1] == "-s":
+        keyword = sys.argv[2]
+        if len(keyword) > 0:
+            search_pdf(keyword.lower())
+
+
+if __name__ == "__main__":
+    main()
+
+# Example usage
+# add_pdf("example.pdf", "finance", "budget", "Annual budget report")
+# print(query_pdfs("budget"))
+
+# conn.close()

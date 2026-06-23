@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+REPOS=(
+    ~/Documents/00-zettelkasten 
+)
+
+function sync_repo {
+    cd $1
+    git pull 
+    git add .
+    git commit -m 'Automatic sync from syncnotes script'
+    git push -u origin main
+}
+
+for repo in "${REPOS[@]}"; do
+    echo "Synching $(basename $repo)"
+    sync_repo "$repo"
+done

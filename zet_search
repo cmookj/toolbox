@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+VAULT="$SECOND_BRAIN"/vault/
+
+usage() {
+    echo "Usage: zet_search <pattern>"
+    exit 1
+}
+
+fzsearch "$@" "$VAULT"

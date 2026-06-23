@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+
+# This script creates pdf files using MetaPost
+
+function ask_filename {
+  read -p "MetaPost filename: " filename
+  echo "$filename"
+}
+
+function add_suffix_if_needed {
+  local filename="$1"
+  local ext="${filename##*.}"
+  if [[ "$ext" != "mp" ]]; then
+    filename="${filename}.mp"
+  fi 
+  echo "$filename"
+}
+
+function convert_mps_to_pdf {
+  local fileanme_with_ext=$1
+  local mps_prefix="${filename_with_ext%.mp}-"
+  local mps_files="$(ls $mps_prefix*.mps)"
+  for mps in $mps_files; do 
+    echo "--------------------------------------------------------------------------------"
+    echo ">> Converting $mps to $mps.pdf"
+    echo "--------------------------------------------------------------------------------"
+    mptopdf "$mps"
+  done
+}
+
+function print_usage {
+  echo "[USAGE]"
+  echo "    mp2pdf filename"
+  echo "  or"
+  echo "    mp2pdf"
+}
+
+function main {
+  filename=""
+
+  if [[ $# -eq 0 ]]; then
+    filename=$(ask_filename)
+  elif [[ $# -eq 1 ]]; then
+    filename="$1"
+  else
+    print_usage
+  fi
+
+  filename_with_ext="$(add_suffix_if_needed $filename)"
+
+  if [[ -f "$filename_with_ext" ]]; then 
+    mpost "$filename_with_ext"
+    convert_mps_to_pdf "$filename_with_ext"
+  fi
+}
+
+# Call main function with all positional arguments (as separate strings)
+main $@

@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+
+SUB="${BASH_SOURCE%/*}/sub"
+if [[ ! -d "$SUB" ]]; then SUB="$PWD/sub"; fi
+source "$SUB/common.sh"
+source "$SUB/string_utils.sh"
+source "$SUB/term_control.sh"
+
+# Create and open a file in the specified directory
+function open_file {
+    # Change into the directory and create a file
+    cd "$1" || exit
+
+    # Format the file
+    local filename="$2"
+    local note_title="$3"
+    local capitalized_title=$(to_title "$note_title")
+    printf -- "---\nid: %s\ntitle: %s\ndate: %s\ntags: [labnote]\n---\n\n# %s\n\n## Backlinks\n\n" \
+        "$unique_id" "LabNote - $filename" "$datestamp" "$capitalized_title" >"$1/${filename}.md"
+
+    # Open the file in neovim
+    $EDITOR '+ normal ggzzi' "$1/$2.md"
+}
+
+function create_unique_filename {
+    # This function create a unique filename by prepending date stamp
+    local DIRECTORY="$1"
+    local filename="$2"
+    local unique_filename="$datestamp"
+
+    if [ ! $filename == "" ]; then
+        unique_filename="$datestamp-$filename"
+    fi
+
+    local count=0
+    while [ -f "$DIRECTORY/$unique_filename.md" ]; do
+        ((count++)) # Increment count
+        unique_filename="$datestamp-$filename__$count"
+    done
+
+    echo "$unique_filename"
+}
+
+function create_unique_id {
+    local unique_id=""
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        unique_id=$(uuidgen)
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        # gnu-linux
+        if [[ $(which uuidgen | wc -l) -eq 0 ]]; then
+            echo "uuidgen is unavailable"
+            unique_id=$(date +%s | sha256sum | head -c 32)
+        else
+            unique_id=$(uuidgen)
+        fi
+    else
+        # Unknown OS
+        unique_id=$(date +%s)
+    fi
+
+    echo "$unique_id"
+}
+
+function ask_create_lab_notes_dir {
+    if ask_yes_no ">> Create a new directory as ${LAB_NOTES}"; then
+        mkdir -p "${LAB_NOTES}"
+    else
+        local msg="${style_red_bold}ERROR${style_normal} Cannot proceed unless the LAB_NOTES dir exists.\n"
+        printf "$msg"
+        exit 1
+    fi
+}
+
+################################################################################
+#    BEGIN HERE
+################################################################################
+
+if [ ! -d "$LAB_NOTES" ]; then
+    echo "[INFO] No LAB_NOTES dir exists."
+    ask_create_lab_notes_dir
+fi
+
+# Create a unique identifier and links section
+datestamp=$(date "+%Y.%m.%d")
+unique_id=$(create_unique_id)
+note_title=""
+
+if [ "$1" == "-h" ]; then
+    echo "Usage:"
+    echo "  labnote [title]"
+    echo ""
+    echo "  Creates a new lab note in ${LAB_NOTES}"
+    echo "  If there is no argument, the title is the date of today"
+    echo "  If there is an argument, the title is the date of today followed by the argument"
+    exit 1
+fi
+
+if [[ $# -eq 1 ]]; then
+    # Set title to the argument given
+    note_title="$1"
+fi
+
+filename=$(to_filename "$note_title")
+
+DST="${LAB_NOTES}"
+
+unique_filename=$(create_unique_filename "$DST" "$filename")
+open_file "$DST" "$unique_filename" "$note_title"

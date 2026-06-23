@@ -1,0 +1,185 @@
+#!/usr/bin/env bash
+
+SUB="${BASH_SOURCE%/*}/sub"
+if [[ ! -d "$SUB" ]]; then SUB="$PWD/sub"; fi
+source "$SUB/common.sh"
+source "$SUB/proj_github_templates.sh"
+source "$SUB/proj_metapost.sh"
+source "$SUB/proj_swift.sh"
+source "$SUB/proj_zig.sh"
+
+# ------------------------------------------------------------------------------
+#   Menu selection
+# ------------------------------------------------------------------------------
+function show_options_ccpp_bazel {
+    local commands=(
+        "C++ (Library with unit test)"
+        "C++ (Generic Multiple target - library and executable)"
+        "C++ (Single target executable)"
+        "C++ (Multiple target executable)"
+        # "C (Executable)"
+        # "C (Library with unit test)"
+    )
+
+    choose_one_option_with_prompt "${#commands[@]}" "${commands[@]}" " Which template to use?" "Exit"
+    local choice=$?
+    return "$choice"
+}
+
+
+function choose_option_ccpp_bazel {
+    local option_loop_done=false
+    while [ $option_loop_done == false ]; do
+        show_options_ccpp_bazel
+        local option_selection=$?
+        case $option_selection in
+        1)
+            create_project_cpp_bazel_lib
+            option_loop_done=true
+            ;;
+        2)
+            create_project_cpp_bazel_generic
+            option_loop_done=true
+            ;;
+        3)
+            create_project_cpp_bazel_single
+            option_loop_done=true
+            ;;
+        4)
+            create_project_cpp_bazel_multi
+            option_loop_done=true
+            ;;
+        0)
+            echo "Exit with no project"
+            option_loop_done=true
+            ;;
+        *)
+            echo "[Error] Invalid option"
+            ;;
+        esac
+    done
+}
+
+function show_options_ccpp_cmake {
+    local commands=(
+        "C++ (Executable)"
+        "C++ (Library with unit test)"
+        "C (Executable)"
+        "C (Library with unit test)"
+    )
+
+    choose_one_option_with_prompt "${#commands[@]}" "${commands[@]}" " Which template to use?" "Exit"
+    local choice=$?
+    return "$choice"
+}
+
+function choose_option_ccpp_cmake {
+    local option_loop_done=false
+    while [ $option_loop_done == false ]; do
+        show_options_ccpp_cmake
+        local option_selection=$?
+        case $option_selection in
+        1)
+            create_project_cpp_executable
+            option_loop_done=true
+            ;;
+        2)
+            create_project_cpp_library
+            option_loop_done=true
+            ;;
+        3)
+            create_project_c_executable
+            option_loop_done=true
+            ;;
+        4)
+            create_project_c_library
+            option_loop_done=true
+            ;;
+        0)
+            echo "Exit with no project"
+            option_loop_done=true
+            ;;
+        *)
+            echo "[Error] Invalid option"
+            ;;
+        esac
+    done
+}
+
+function show_options {
+    local commands=(
+        "C/C++ (Bazel)"
+        "C/C++ (CMake)"
+        "Python (Skeleton)"
+        "Zig"
+        "Swift"
+    )
+
+    choose_one_option_with_prompt "${#commands[@]}" "${commands[@]}" " Which template to use?" "Exit"
+    local choice=$?
+    return "$choice"
+}
+
+function choose_option {
+    local option_loop_done=false
+    while [ $option_loop_done == false ]; do
+        show_options
+        local option_selection=$?
+        case $option_selection in
+        1)
+            choose_option_ccpp_bazel
+            option_loop_done=true
+            ;;
+        2)
+            choose_option_ccpp_cmake
+            option_loop_done=true
+            ;;
+        3)
+            create_python_project
+            option_loop_done=true
+            ;;
+        4)
+            create_zig_project
+            option_loop_done=true
+            ;;
+        5)
+            create_swift_project
+            option_loop_done=true
+            ;;
+        0)
+            echo "Exit with no project"
+            option_loop_done=true
+            ;;
+        *)
+            echo "[Error] Invalid option"
+            ;;
+        esac
+    done
+}
+
+function print_usage {
+    echo ""
+    echo "NAME"
+    echo "    mkproj - make software development project"
+    echo ""
+    echo "SYNOPSIS"
+    echo "    mkproj project_name"
+    echo ""
+    echo "DESCRIPTION"
+    echo "    The mkproj command creates a new software development project in current directory"
+    echo "    with the name given."
+    echo ""
+}
+
+if [[ $# -ne 1 ]]; then
+    print_usage
+else
+    PROJ_NAME="$1"
+
+    if [[ -e $PROJ_NAME || -d $PROJ_NAME ]]; then
+        echo "The name $PROJ_NAME already exists in current directory."
+        exit -1
+    fi
+
+    choose_option
+fi

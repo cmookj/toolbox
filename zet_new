@@ -1,0 +1,166 @@
+#!/usr/bin/env bash
+
+SUB="${BASH_SOURCE%/*}/sub"
+if [[ ! -d "$SUB" ]]; then SUB="$PWD/sub"; fi
+source "$SUB/string_utils.sh"
+source "$SUB/term_control.sh"
+
+function generate_spaces {
+    local length=$(($1 * 4))
+    printf "%*s" "$length" ""
+}
+
+function nav {
+    local spaces=$(generate_spaces $2)
+    local extra_space=""
+
+    for dir in "$1"*/; do
+        if [[ -d "$dir" ]]; then
+            cd "$dir"
+            local dir_name="$(basename "$dir")"
+
+            DIR_LIST+=("$dir_name")
+            PATH_LIST+=("$dir")
+
+            if [[ COUNTER -lt 10 ]]; then
+                extra_space=" "
+            else
+                extra_space=""
+            fi
+            echo "$COUNTER.$extra_space$spaces$dir_name"
+            COUNTER=$((COUNTER + 1))
+
+            local indent_level=$(($2 + 1))
+            nav "$dir" $indent_level
+
+            cd - >/dev/null # Go back to the previous directory
+        fi
+    done
+}
+
+# Prompt the user for the title
+function get_title {
+    read -p "Title: " zettel_title
+    echo "$zettel_title"
+}
+
+# Create and open a file in the specified directory
+function open_file {
+    # Change into the directory and create a file
+    cd "$1" || exit
+
+    local tool="$4"
+    local zettel_title="$3"
+    # local capitalized_title=$(to_title "$zettel_title")
+    local url=""
+    local datestampstr="${datestamp//_/-}"
+
+    if [[ "$tool" == "" ]]; then
+        printf -- "# %s\n\n" "$zettel_title" >"$1/$2.md"
+    elif [[ "$tool" == "obsidian" ]]; then
+        printf -- "---\nid: %s\ntitle: %s\ndate: %s\ntags: []\n---\n# %s\n\n## Backlinks\n\n" "$unique_id" "$filename" "$datestampstr" "$zettel_title" >"$1/$2.md"
+    elif [[ "$tool" == "tolaria" ]]; then
+        printf -- "---\ntype: Note\nstatus: Active\nurl: %s\ndate: %s\n---\n\n# %s\n\n" "$url" "$datestampstr" "$zettel_title" >"$1/$2.md"
+    fi
+
+    # Open the file in neovim
+    $EDITOR '+ normal ggzzi' "$1/$2.md"
+}
+
+function create_unique_filename {
+    # This function create a unique filename by prepending date stamp
+    local DIRECTORY="$1"
+    local filename="$2"
+    local unique_filename="$filename-$datestamp"
+
+    local count=0
+    while [ -f "$DIRECTORY/$unique_filename.md" ]; do
+        ((count++)) # Increment count
+        unique_filename="$datestamp-$filename__$count"
+    done
+
+    echo "$unique_filename"
+}
+
+function create_unique_id {
+    local unique_id=""
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        unique_id=$(uuidgen)
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        # gnu-linux
+        if [[ $(which uuidgen | wc -l) -eq 0 ]]; then
+            echo "uuidgen is unavailable"
+            unique_id=$(date +%s | sha256sum | head -c 32)
+        else
+            unique_id=$(uuidgen)
+        fi
+    else
+        # Unknown OS
+        unique_id=$(date +%s)
+    fi
+
+    echo "$unique_id"
+}
+
+################################################################################
+#    BEGIN HERE
+################################################################################
+
+# Create a unique identifier and links section
+datestamp=$(date "+%Y_%m_%d")
+
+unique_id=$(create_unique_id)
+
+if [[ $# -eq 0 ]]; then
+    # Prompt the user if no title is provided
+    zettel_title=$(get_title)
+
+elif [[ $# -eq 1 ]]; then
+    # Set title to the argument given
+    zettel_title="$1"
+
+else
+    # If more than one argument is given, print error message and stop
+    echo "Please provide only one argument, without .md extension."
+    echo "Example: zet my_new_note"
+    echo "     or  zet 'my new note'"
+    exit 1
+fi
+
+# filename=$(to_filename "$zettel_title")
+filename=$(sanitize "$zettel_title")
+
+VAULT="$SECOND_BRAIN/vault"
+PATH_LIST=("$SECOND_BRAIN/0-inbox")
+DIR_LIST=("INBOX")
+COUNTER=1
+DST="$SECOND_BRAIN/0-inbox"
+
+SCHEME="flat" # "hierarchy" or "flat"
+
+if [[ $SCHEME == "hierarchy" ]]; then
+    # Get the list of directories & paths
+    echo "0. INBOX"
+    nav "$VAULT" 0
+
+    DONE=0
+    MAX_INDEX=$((${#DIR_LIST[@]} - 1))
+    while [ $DONE -eq 0 ]; do
+        printf "$style_green_bold >> Choose a destination directory [0..$MAX_INDEX]: $style_normal"
+        read dir_index
+        # read -p ">> Choose a destination directory [0..$MAX_INDEX]: " dir_index
+        if [[ dir_index -ge 0 ]] && [[ dir_index -le $MAX_INDEX ]]; then
+            # echo "  - You chose ${DIR_LIST[dir_index]}"
+            DST="${PATH_LIST[dir_index]}"
+            printf "$style_green_bold  - Creating a new Zettel in $DST$style_normal\n"
+            DONE=1
+        fi
+    done
+elif [[ $SCHEME == "flat" ]]; then
+    DST="$VAULT"
+fi
+
+unique_filename=$(create_unique_filename "$DST" "$filename")
+TOOL=""  # "", "tolaria" or "obsidian"
+open_file "$DST" "$unique_filename" "$zettel_title" "$TOOL"
