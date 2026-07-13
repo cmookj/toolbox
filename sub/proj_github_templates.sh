@@ -301,7 +301,7 @@ function create_project_cpp_library {
     create_file_gitignore_cmake
 
     # Rename project
-    mv core $PROJ_NAME
+    # mv core $PROJ_NAME
     local sed_formula="s/__PROJECT_NAME__/$PROJ_NAME/g"
     sed -i '' -e $sed_formula CMakeLists.txt
     sed -i '' -e $sed_formula "$PROJ_NAME/CMakeLists.txt"

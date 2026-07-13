@@ -3,8 +3,8 @@
 SUB="${BASH_SOURCE%/*}/sub"
 if [[ ! -d "$SUB" ]]; then SUB="$PWD/sub"; fi
 source "$SUB/common.sh"
+source "$SUB/new_metapost.sh"
 source "$SUB/proj_github_templates.sh"
-source "$SUB/proj_metapost.sh"
 source "$SUB/proj_swift.sh"
 source "$SUB/proj_zig.sh"
 
@@ -108,8 +108,8 @@ function choose_option_ccpp_cmake {
 
 function show_options {
     local commands=(
-        "C/C++ (Bazel)"
         "C/C++ (CMake)"
+        "C/C++ (Bazel)"
         "Python (Skeleton)"
         "Zig"
         "Swift"
@@ -127,11 +127,11 @@ function choose_option {
         local option_selection=$?
         case $option_selection in
         1)
-            choose_option_ccpp_bazel
+            choose_option_ccpp_cmake
             option_loop_done=true
             ;;
         2)
-            choose_option_ccpp_cmake
+            choose_option_ccpp_bazel
             option_loop_done=true
             ;;
         3)
