@@ -157,7 +157,7 @@ function print_usage_c_test {
     echo "RUN TESTS"
     echo "    GTEST_COLOR=1 ctest --test-dir build --output-on-failure -j"
     echo "or"
-    echo "    ./build/test/$1_test"
+    echo "    ./build/tests/$1-test"
     echo ""
 }
 
@@ -204,8 +204,7 @@ function create_project_c_library {
     mv core $PROJ_NAME
     local sed_formula="s/__PROJECT_NAME__/$PROJ_NAME/g"
     sed -i '' -e $sed_formula CMakeLists.txt
-    sed -i '' -e $sed_formula "$PROJ_NAME/CMakeLists.txt"
-    sed -i '' -e $sed_formula "test/CMakeLists.txt"
+    sed -i '' -e $sed_formula "tests/CMakeLists.txt"
 
     print_usage_c
     print_usage_c_test $PROJ_NAME
@@ -226,14 +225,6 @@ function print_usage_cpp {
     echo "compile_commands.json is generated automatically in the build directory."
     echo "Link it to the project root with:"
     echo "    ln -s ./build/compile_commands.json ./"
-    echo ""
-}
-
-function print_usage_cpp_test {
-    echo "RUN TESTS"
-    echo "    GTEST_COLOR=1 ctest --test-dir build --output-on-failure -j"
-    echo "or"
-    echo "    ./build/$1_test"
     echo ""
 }
 
@@ -301,13 +292,12 @@ function create_project_cpp_library {
     create_file_gitignore_cmake
 
     # Rename project
-    # mv core $PROJ_NAME
     local sed_formula="s/__PROJECT_NAME__/$PROJ_NAME/g"
     sed -i '' -e $sed_formula CMakeLists.txt
-    sed -i '' -e $sed_formula "$PROJ_NAME/CMakeLists.txt"
+    sed -i '' -e $sed_formula "tests/CMakeLists.txt"
 
     print_usage_cpp
-    print_usage_cpp_test $PROJ_NAME
+    print_usage_c_test $PROJ_NAME
 }
 
 # ------------------------------------------------------------------------------
