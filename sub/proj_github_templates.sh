@@ -155,7 +155,7 @@ function print_usage_c {
 
 function print_usage_c_test {
     echo "RUN TESTS"
-    echo "    GTEST_COLOR=1 ctest --test-dir build --output-on-failure -j"
+    echo "    GTEST_COLOR=1 ctest --test-dir build/tests --output-on-failure -j"
     echo "or"
     echo "    ./build/tests/$1-test"
     echo ""
