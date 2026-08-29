@@ -12,7 +12,7 @@ usage() {
 
 search_title() {
     local pattern="$1" dir="$2"
-    rg --line-number "^title:.*${pattern}" "$dir"
+    rg -l --line-number "^title:.*${pattern}" "$dir"
 }
 
 search_tags() {
@@ -30,7 +30,7 @@ search_tags() {
 
 search_all() {
     local pattern="$1" dir="$2"
-    rg --line-number "$pattern" "$dir"
+    rg -l --line-number "$pattern" "$dir"
 }
 
 # --- Parse arguments ---
@@ -58,15 +58,37 @@ esac
 
 [[ -z "$results" ]] && exit 0
 
+# `fzf --with-nth 1..` displays field 1 verbatim, which is the full path `rg`
+# returned.  `--with-nth` can only pick which delimited fields to show — it can't
+# transform a field's content (like stripping the directory off).
+# So the trick is to inject a basename field before piping into `fzf`, display
+# that field, and keep the full path in another field for the preview/open logic.
 selected=$(echo "$results" \
     | sort -t: -u -k1,1 \
-    | fzf --delimiter ':' --with-nth 1.. \
-          --preview 'bat --style=numbers --color=always {1}')
+    | awk -F: '{ n = split($1, a, "/"); print a[n] ":" $0 }' \
+    | fzf --delimiter ':' --with-nth 1 \
+          --preview 'bat --style=numbers --color=always {2}')
 
 [[ -z "$selected" ]] && exit 0
 
-file=$(echo "$selected" | cut -d: -f1)
-line=$(echo "$selected" | cut -d: -f2)
+file=$(echo "$selected" | cut -d: -f2)
+line=$(echo "$selected" | cut -d: -f3)
+
+# 1. awk -F: '{ n = split($1, a, "/"); print a[n] ":" $0 }'
+# For each line, it splits the first field (`$1`, the full path) on `/`, takes
+# the last piece (`a[n]`, the basename), and prepends it to the original, untouched
+# line. So `path/to/note.md:12:content` becomes `note.md:path/to/note.md:12:content`.
+#
+# 2. --with-nth 1
+# Now only shows field 1, which is the basename just added.
+#
+# 3. --preview 'bat ... {2}'
+# The preview needs the real path, which shifted from field {1} to field {2}
+# after prepending.
+#
+# 4. cut -d: -f2 / -f3
+# Same shift applies when pulling the file and line number out of the selected
+# row after fzf returns.
 
 "${EDITOR:-vi}" +"$line" "$file"
 
